@@ -67,6 +67,14 @@ class Settings(BaseSettings):
     LIVENESS_MOVEMENT_THRESHOLD: float = 0.02
     LIVENESS_MIN_FRAMES: int = 2
     
+    # Advanced liveness detection thresholds
+    LIVENESS_TEXTURE_THRESHOLD: float = 0.4  # LBP texture variance threshold
+    LIVENESS_MOIRE_THRESHOLD: float = 0.3  # FFT high-frequency threshold for screens
+    LIVENESS_GLARE_THRESHOLD: float = 0.15  # Max glare ratio before flagging
+    LIVENESS_COLOR_VARIANCE_MIN: float = 0.1  # Min color variance for real skin
+    LIVENESS_TEMPORAL_UNIFORMITY_MAX: float = 0.95  # Max uniformity (video replay detection)
+    LIVENESS_CONFIDENCE_THRESHOLD: float = 0.6  # Final confidence threshold for is_live
+    
     # Quality settings
     MIN_QUALITY_SCORE: float = 0.3
     

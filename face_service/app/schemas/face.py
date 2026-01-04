@@ -67,6 +67,17 @@ class EmbeddingResponse(BaseModel):
     )
 
 
+class LivenessScoresResponse(BaseModel):
+    """Component scores from liveness anti-spoofing checks."""
+    movement: float = Field(..., ge=0.0, description="Landmark movement between frames")
+    eye_movement: float = Field(..., ge=0.0, description="Eye region movement (blink detection)")
+    texture: float = Field(..., ge=0.0, le=1.0, description="LBP texture analysis score")
+    moire: float = Field(..., ge=0.0, le=1.0, description="FFT moiré pattern score")
+    glare: float = Field(..., ge=0.0, le=1.0, description="Glare/reflection score")
+    color_variance: float = Field(..., ge=0.0, le=1.0, description="Color distribution score")
+    temporal_uniformity: float = Field(..., ge=0.0, le=1.0, description="Temporal uniformity score")
+
+
 class LivenessResponse(BaseModel):
     """
     Response from liveness detection endpoint.
@@ -75,6 +86,7 @@ class LivenessResponse(BaseModel):
         is_live: Whether the face is from a live person
         confidence: Confidence score for the liveness determination (0-1)
         reason: Human-readable explanation of the result
+        scores: Detailed component scores for debugging
     """
     is_live: bool = Field(..., description="Whether the face is from a live person")
     confidence: float = Field(
@@ -84,3 +96,7 @@ class LivenessResponse(BaseModel):
         description="Liveness confidence score"
     )
     reason: str = Field(..., description="Explanation of the liveness result")
+    scores: Optional[LivenessScoresResponse] = Field(
+        None,
+        description="Detailed component scores for debugging"
+    )

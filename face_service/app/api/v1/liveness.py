@@ -9,7 +9,7 @@ import numpy as np
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from app.pipeline.liveness import LivenessDetector
-from app.schemas.face import LivenessResponse
+from app.schemas.face import LivenessResponse, LivenessScoresResponse
 
 router = APIRouter()
 
@@ -66,8 +66,19 @@ async def check_liveness(
     # Check liveness
     result = liveness_detector.check_liveness(img1, img2)
     
+    scores_response = LivenessScoresResponse(
+        movement=result.scores.movement,
+        eye_movement=result.scores.eye_movement,
+        texture=result.scores.texture,
+        moire=result.scores.moire,
+        glare=result.scores.glare,
+        color_variance=result.scores.color_variance,
+        temporal_uniformity=result.scores.temporal_uniformity
+    )
+    
     return LivenessResponse(
         is_live=result.is_live,
         confidence=result.confidence,
-        reason=result.reason
+        reason=result.reason,
+        scores=scores_response
     )
