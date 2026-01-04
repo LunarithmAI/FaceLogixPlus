@@ -46,4 +46,13 @@ class FaceEmbedding(Base):
             unique=True,
             postgresql_where="is_primary = TRUE"
         ),
+        # HNSW index for fast cosine similarity search - critical for face recognition at scale
+        # Without this, every face match query does O(N) full table scan
+        Index(
+            "face_embeddings_embedding_idx",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_with={"m": 16, "ef_construction": 64},
+            postgresql_ops={"embedding": "vector_cosine_ops"}
+        ),
     )

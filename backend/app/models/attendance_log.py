@@ -61,4 +61,6 @@ class AttendanceLog(Base):
         Index("attendance_logs_device_ts_idx", "device_id", ts.desc()),
         Index("attendance_logs_ts_idx", ts.desc()),
         Index("attendance_logs_org_status_idx", "org_id", "status"),
+        Index("attendance_logs_org_ts_idx", "org_id", ts.desc()),
+        Index("attendance_logs_org_type_idx", "org_id", "type"),
     )

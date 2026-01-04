@@ -64,4 +64,5 @@ class User(Base, TimestampMixin):
         Index("users_email_idx", "email"),
         Index("users_external_id_idx", "external_id"),
         Index("users_org_active_idx", "org_id", "is_active", postgresql_where="is_active = TRUE"),
+        Index("users_org_department_idx", "org_id", "department"),
     )
