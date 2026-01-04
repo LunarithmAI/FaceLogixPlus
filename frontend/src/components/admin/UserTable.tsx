@@ -59,6 +59,9 @@ export function UserTable({
               Status
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Department
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Face Enrolled
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -92,6 +95,9 @@ export function UserTable({
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <StatusBadge status={user.is_active ? 'active' : 'inactive'} />
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {user.department || '—'}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 {user.enrolled_at ? (

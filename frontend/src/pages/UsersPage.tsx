@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, MagnifyingGlassIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -7,6 +7,8 @@ import { Modal, ConfirmModal } from '@/components/ui/Modal';
 import { UserTable } from '@/components/admin/UserTable';
 import { UserForm } from '@/components/admin/UserForm';
 import { EnrollmentModal } from '@/components/admin/EnrollmentModal';
+import { DepartmentFilter } from '@/components/admin/DepartmentFilter';
+import { BulkImportModal } from '@/components/admin/BulkImportModal';
 import { Loading } from '@/components/ui/Loading';
 import { usersApi } from '@/services/users';
 import type { User, CreateUserRequest, UpdateUserRequest, UserListResponse } from '@/types/user';
@@ -16,25 +18,46 @@ export function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [departmentFilter, setDepartmentFilter] = useState('');
 
   // Modal states
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEnrollOpen, setIsEnrollOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadDepartments = useCallback(async () => {
+    try {
+      const data = await usersApi.getDepartments();
+      setDepartments(data);
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+    }
+  }, []);
 
   const loadUsers = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await usersApi.list({ page, search, page_size: 10 });
+      const data = await usersApi.list({ 
+        page, 
+        search, 
+        page_size: 10,
+        department: departmentFilter || undefined,
+      });
       setUsers(data);
     } catch (error) {
       console.error('Failed to load users:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, departmentFilter]);
+
+  useEffect(() => {
+    loadDepartments();
+  }, [loadDepartments]);
 
   useEffect(() => {
     loadUsers();
@@ -42,6 +65,11 @@ export function UsersPage() {
 
   const handleSearch = (value: string) => {
     setSearch(value);
+    setPage(1);
+  };
+
+  const handleDepartmentChange = (value: string) => {
+    setDepartmentFilter(value);
     setPage(1);
   };
 
@@ -101,9 +129,18 @@ export function UsersPage() {
             <h1 className="text-2xl font-bold text-gray-900">Users</h1>
             <p className="text-gray-500 mt-1">Manage user accounts and face enrollments</p>
           </div>
-          <Button leftIcon={<PlusIcon className="w-5 h-5" />} onClick={handleCreate}>
-            Add User
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              leftIcon={<ArrowUpTrayIcon className="w-5 h-5" />}
+              onClick={() => setIsBulkImportOpen(true)}
+            >
+              Bulk Import
+            </Button>
+            <Button leftIcon={<PlusIcon className="w-5 h-5" />} onClick={handleCreate}>
+              Add User
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -120,6 +157,13 @@ export function UsersPage() {
                   className="pl-10"
                 />
               </div>
+            </div>
+            <div className="w-full sm:w-48">
+              <DepartmentFilter
+                departments={departments}
+                value={departmentFilter}
+                onChange={handleDepartmentChange}
+              />
             </div>
           </div>
         </Card>
@@ -203,6 +247,16 @@ export function UsersPage() {
         onClose={() => setIsEnrollOpen(false)}
         user={selectedUser}
         onSuccess={loadUsers}
+      />
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onSuccess={() => {
+          loadUsers();
+          loadDepartments();
+        }}
       />
     </>
   );

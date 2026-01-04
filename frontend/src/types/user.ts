@@ -59,3 +59,21 @@ export interface EnrollFaceResponse {
   embeddings_count: number;
   enrolled_at: string;
 }
+
+export interface BulkUserResult {
+  folder_name: string;
+  name: string;
+  status: 'success' | 'error' | 'skipped';
+  user_id?: string;
+  error?: string;
+  images_processed: number;
+  embeddings_created: number;
+}
+
+export interface BulkImportResponse {
+  total_rows: number;
+  successful: number;
+  failed: number;
+  skipped: number;
+  results: BulkUserResult[];
+}

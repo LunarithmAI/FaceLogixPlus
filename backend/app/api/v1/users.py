@@ -8,7 +8,8 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +29,8 @@ from app.schemas.user import (
     UserResponse,
     UserUpdate,
 )
+from app.schemas.bulk_import import BulkImportResponse
+from app.services.bulk_import_service import BulkImportService
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -89,6 +92,86 @@ async def list_users(
         page_size=page_size,
         pages=pages,
     )
+
+
+@router.get("/bulk-import/template")
+async def download_bulk_import_template(
+    current_user: User = Depends(require_admin),
+):
+    """Download CSV template for bulk user import with face images."""
+    csv_content = (
+        "folder_name,name,email,external_id,department,role\n"
+        "EMP001,John Doe,john@example.com,EMP001,Engineering,member\n"
+        "EMP002,Jane Smith,jane@example.com,EMP002,HR,manager\n"
+        "EMP003,Bob Wilson,,EMP003,Sales,member\n"
+    )
+    return StreamingResponse(
+        iter([csv_content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=bulk_import_template.csv"}
+    )
+
+
+@router.post("/bulk-import", response_model=BulkImportResponse)
+async def bulk_import_users(
+    file: UploadFile = File(..., description="ZIP file containing CSV and face images"),
+    skip_existing: bool = Query(True, description="Skip users that already exist"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """
+    Bulk import users with face enrollment from ZIP file.
+    
+    ZIP structure:
+    - users.csv: User data (folder_name, name, email, external_id, department, role)
+    - faces/: Folder containing subfolders for each user
+      - {folder_name}/: Subfolder with face images (1-5 images per user)
+    """
+    if not file.filename or not file.filename.endswith('.zip'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be a ZIP archive"
+        )
+
+    content = await file.read()
+    
+    if len(content) > 100 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File too large. Maximum size is 100MB"
+        )
+
+    service = BulkImportService(db)
+    result = await service.process_zip_upload(
+        org_id=current_user.org_id,
+        zip_content=content,
+        skip_existing=skip_existing
+    )
+
+    return result
+
+
+@router.get("/departments", response_model=List[str])
+async def list_departments(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """
+    Get unique departments in the organization.
+    
+    Returns sorted list of non-null department names.
+    Admin only.
+    """
+    result = await db.execute(
+        select(User.department)
+        .where(User.org_id == current_user.org_id)
+        .where(User.department.isnot(None))
+        .where(User.department != "")
+        .distinct()
+        .order_by(User.department)
+    )
+    departments = [row[0] for row in result.fetchall()]
+    return departments
 
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
