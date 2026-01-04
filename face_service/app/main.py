@@ -5,6 +5,7 @@ Provides endpoints for face detection, embedding generation,
 and liveness detection with model preloading on startup.
 """
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -13,6 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.models.loader import ModelLoader
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -25,19 +28,19 @@ async def lifespan(app: FastAPI):
     - Shutdown: Clean up resources
     """
     # Startup: Load and warm up models
-    print(f"Starting {settings.SERVICE_NAME}...")
-    print("Loading ML models...")
+    logger.info("Starting %s...", settings.SERVICE_NAME)
+    logger.info("Loading ML models...")
     try:
         ModelLoader.warmup()
-        print("Models loaded and warmed up successfully")
+        logger.info("Models loaded and warmed up successfully")
     except FileNotFoundError as e:
-        print(f"WARNING: {e}")
-        print("Service starting without models - endpoints may fail")
+        logger.warning("Model loading failed: %s", e)
+        logger.warning("Service starting without models - endpoints may fail")
     
     yield
     
     # Shutdown: Clean up
-    print(f"Shutting down {settings.SERVICE_NAME}...")
+    logger.info("Shutting down %s...", settings.SERVICE_NAME)
     ModelLoader.clear()
 
 

@@ -4,12 +4,14 @@ Face Embedding Generation Endpoint.
 Provides API endpoint for generating face embeddings from images.
 """
 
+import logging
+import io
+
 import cv2
 import numpy as np
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from PIL import Image
 from PIL.ExifTags import TAGS
-import io
 
 from app.core.config import settings
 from app.pipeline.aligner import FaceAligner
@@ -17,6 +19,8 @@ from app.pipeline.detector import FaceDetector
 from app.pipeline.embedder import FaceEmbedder
 from app.pipeline.quality import QualityAssessor
 from app.schemas.face import BoundingBox, EmbeddingResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -69,7 +73,7 @@ def fix_image_orientation(image_bytes: bytes) -> np.ndarray:
         return cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
         
     except Exception as e:
-        print(f"[EMBED] EXIF handling failed: {e}, falling back to cv2.imdecode")
+        logger.warning("EXIF handling failed: %s, falling back to cv2.imdecode", e)
         # Fallback to standard OpenCV decode
         nparr = np.frombuffer(image_bytes, np.uint8)
         return cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -107,17 +111,12 @@ async def generate_embedding(
         )
     
     # Log image info for debugging
-    print(f"[EMBED] Image size: {img.shape[1]}x{img.shape[0]}, bytes: {len(contents)}")
-    
-    # DEBUG: Save image to check what's being received
-    debug_path = settings.MODELS_DIR / "debug_last_image.jpg"
-    cv2.imwrite(str(debug_path), img)
-    print(f"[EMBED] Debug image saved to: {debug_path}")
+    logger.debug("Image size: %dx%d, bytes: %d", img.shape[1], img.shape[0], len(contents))
     
     # Detect faces
     faces = detector.detect(img)
     
-    print(f"[EMBED] Faces detected: {len(faces)}")
+    logger.debug("Faces detected: %d", len(faces))
     
     if not faces:
         raise HTTPException(
@@ -131,7 +130,7 @@ async def generate_embedding(
     # Assess image quality
     quality = quality_assessor.assess(img, face)
     
-    print(f"[EMBED] Quality score: {quality.overall:.2f} (min: {settings.MIN_QUALITY_SCORE})")
+    logger.debug("Quality score: %.2f (min: %.2f)", quality.overall, settings.MIN_QUALITY_SCORE)
     
     if quality.overall < settings.MIN_QUALITY_SCORE:
         raise HTTPException(

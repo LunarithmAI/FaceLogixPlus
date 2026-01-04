@@ -15,6 +15,7 @@ Outputs (9 total, 3 per scale):
 - landmarks: (N, 10) - landmark deltas (5 points × 2 coords)
 """
 
+import logging
 from dataclasses import dataclass
 from itertools import product
 from typing import List, Tuple
@@ -24,6 +25,8 @@ import numpy as np
 
 from app.core.config import settings
 from app.models.loader import ModelLoader
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -127,7 +130,10 @@ class FaceDetector:
             and self._get_face_size(f.bbox) >= settings.MIN_FACE_SIZE
         ]
         
-        print(f"[DETECTOR] Detected {len(faces)} faces after filtering (threshold={settings.DETECTION_THRESHOLD}, min_size={settings.MIN_FACE_SIZE})")
+        logger.debug(
+            "Detected %d faces after filtering (threshold=%.2f, min_size=%d)",
+            len(faces), settings.DETECTION_THRESHOLD, settings.MIN_FACE_SIZE
+        )
         
         # Sort by confidence and limit to max faces
         faces = sorted(faces, key=lambda x: x.confidence, reverse=True)

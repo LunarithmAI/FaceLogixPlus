@@ -5,12 +5,15 @@ Provides lazy-loading of face detection and embedding models with
 warmup functionality for production deployments.
 """
 
+import logging
 from typing import Dict, Optional
 
 import numpy as np
 import onnxruntime as ort
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class ModelLoader:
@@ -114,7 +117,7 @@ class ModelLoader:
         )
         embedder.run(None, {embedder_input.name: dummy_embedder_input})
         
-        print("Models loaded and warmed up successfully")
+        logger.info("Models loaded and warmed up successfully")
     
     @classmethod
     def clear(cls) -> None:
