@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import AuthenticationError, NotFoundError
+from app.core.utils import utc_now
 from app.core.security import (
     create_access_token,
     create_device_token,

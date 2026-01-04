@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     
+    # API Key for service-to-service authentication
+    API_KEY: str = ""
+    
+    # CORS allowed origins (comma-separated, empty = allow all in debug mode)
+    CORS_ORIGINS: str = ""
+    
     # Model paths
     MODELS_DIR: Path = Path("models")
     DETECTOR_MODEL: str = "det_10g.onnx"

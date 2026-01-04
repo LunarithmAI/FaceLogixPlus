@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import generate_device_secret, hash_password
+from app.core.utils import utc_now
 from app.models import Device
 from app.schemas.device import DeviceCreate, DeviceUpdate
 

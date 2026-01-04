@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, require_admin
 from app.core.config import settings
+from app.core.utils import utc_now
 from app.models.device import Device
 from app.models.org import Org
 from app.models.user import User

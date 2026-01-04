@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, require_admin
 from app.core.config import settings
 from app.core.security import hash_password
+from app.core.utils import utc_now
 from app.models.face_embedding import FaceEmbedding
 from app.models.user import User
 from app.schemas.common import PaginatedResponse
@@ -312,44 +313,37 @@ async def enroll_user_face(
         )
     
     # Process images through face service
+    import asyncio
     import httpx
     
-    embeddings_stored = 0
+    async def process_image(client: httpx.AsyncClient, idx: int, content: bytes):
+        try:
+            response = await client.post(
+                f"{settings.FACE_SERVICE_URL}/api/v1/embed",
+                files={"image": ("face.jpg", content, "image/jpeg")},
+            )
+            if response.status_code == 200:
+                result = response.json()
+                return idx, result.get("embedding"), result.get("quality_score")
+        except (httpx.TimeoutException, httpx.RequestError):
+            pass
+        return idx, None, None
     
     async with httpx.AsyncClient(timeout=settings.FACE_SERVICE_TIMEOUT) as client:
-        for idx, content in enumerate(image_bytes_list):
-            try:
-                response = await client.post(
-                    f"{settings.FACE_SERVICE_URL}/api/v1/embed",
-                    files={"image": ("face.jpg", content, "image/jpeg")},
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    embedding = result.get("embedding")
-                    quality_score = result.get("quality_score")
-                    
-                    if embedding:
-                        # Store embedding
-                        face_embedding = FaceEmbedding(
-                            user_id=user_id,
-                            embedding=embedding,
-                            quality_score=quality_score,
-                            is_primary=(idx == 0 and embeddings_stored == 0),
-                        )
-                        db.add(face_embedding)
-                        embeddings_stored += 1
-                elif response.status_code == 400:
-                    # No face detected in this image, continue with others
-                    continue
-                else:
-                    # Face service error
-                    continue
-                    
-            except httpx.TimeoutException:
-                continue
-            except httpx.RequestError:
-                continue
+        tasks = [process_image(client, i, c) for i, c in enumerate(image_bytes_list)]
+        results = await asyncio.gather(*tasks)
+    
+    embeddings_stored = 0
+    for idx, embedding, quality_score in sorted(results, key=lambda x: x[0]):
+        if embedding:
+            face_embedding = FaceEmbedding(
+                user_id=user_id,
+                embedding=embedding,
+                quality_score=quality_score,
+                is_primary=(embeddings_stored == 0),
+            )
+            db.add(face_embedding)
+            embeddings_stored += 1
     
     if embeddings_stored == 0:
         raise HTTPException(

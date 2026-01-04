@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import hash_password
+from app.core.utils import utc_now
 from app.models import FaceEmbedding, User
 from app.schemas.user import UserCreate, UserUpdate
 

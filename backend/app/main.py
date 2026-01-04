@@ -35,6 +35,11 @@ async def lifespan(app: FastAPI):
     logger.info("Starting FaceLogix API...")
     logger.info(f"Debug mode: {settings.DEBUG}")
     
+    if settings.JWT_SECRET_KEY == "your-secret-key-change-in-production":
+        logger.warning("SECURITY WARNING: Using default JWT_SECRET_KEY. Change it in production!")
+    if settings.DEVICE_TOKEN_SECRET == "device-secret-key-change-in-production":
+        logger.warning("SECURITY WARNING: Using default DEVICE_TOKEN_SECRET. Change it in production!")
+    
     yield
     
     # Shutdown

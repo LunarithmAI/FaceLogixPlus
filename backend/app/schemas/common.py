@@ -1,7 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, Field
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
 
 T = TypeVar("T")
 
@@ -12,7 +17,7 @@ class ResponseBase(BaseModel, Generic[T]):
     success: bool = True
     data: Optional[T] = None
     message: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)
 
 
 class PaginatedResponse(BaseModel, Generic[T]):
@@ -50,4 +55,4 @@ class ErrorResponse(BaseModel):
     error: str
     code: str
     details: Optional[dict] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=_utc_now)

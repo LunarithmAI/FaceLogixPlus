@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_admin
 from app.core.security import generate_device_secret, hash_password
+from app.core.utils import utc_now
 from app.models.device import Device
 from app.models.user import User
 from app.schemas.common import PaginatedResponse

@@ -79,7 +79,7 @@ export function CameraView({
     if (!isReady || !videoRef.current) return;
     
     // Attach to window for direct access
-    (window as unknown as { captureFrame?: () => string | null }).captureFrame = captureFrame;
+    window.captureFrame = captureFrame;
     
     // Continuously send frames to parent (every 500ms)
     const intervalId = setInterval(() => {
@@ -91,7 +91,7 @@ export function CameraView({
     
     return () => {
       clearInterval(intervalId);
-      delete (window as unknown as { captureFrame?: () => string | null }).captureFrame;
+      delete window.captureFrame;
     };
   }, [isReady, captureFrame, videoRef]);
 

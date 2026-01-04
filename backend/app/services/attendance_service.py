@@ -9,6 +9,7 @@ from sqlalchemy.orm import joinedload
 
 from app.core.config import settings
 from app.core.exceptions import FaceServiceError, NotFoundError
+from app.core.utils import utc_now
 from app.models import AttendanceLog, Device, FaceEmbedding, User
 from app.schemas.attendance import (
     AttendanceQuery,

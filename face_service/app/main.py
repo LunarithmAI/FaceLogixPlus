@@ -7,15 +7,30 @@ and liveness detection with model preloading on startup.
 
 import logging
 from contextlib import asynccontextmanager
+from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, Security, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.models.loader import ModelLoader
 
 logger = logging.getLogger(__name__)
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(api_key: Optional[str] = Security(api_key_header)) -> bool:
+    if not settings.API_KEY:
+        return True
+    if not api_key or api_key != settings.API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API key",
+        )
+    return True
 
 
 @asynccontextmanager
@@ -44,6 +59,14 @@ async def lifespan(app: FastAPI):
     ModelLoader.clear()
 
 
+def _get_cors_origins() -> list:
+    if settings.CORS_ORIGINS:
+        return [o.strip() for o in settings.CORS_ORIGINS.split(",")]
+    if settings.DEBUG:
+        return ["*"]
+    return ["http://localhost:8000"]
+
+
 app = FastAPI(
     title="FaceLogix Face Recognition Service",
     description=(
@@ -61,14 +84,18 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=_get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include API router
-app.include_router(api_router, prefix="/api/v1")
+# Include API router with API key dependency
+app.include_router(
+    api_router,
+    prefix="/api/v1",
+    dependencies=[Depends(verify_api_key)]
+)
 
 
 @app.get("/health", tags=["Health"])

@@ -31,11 +31,10 @@ export function CheckInPage() {
 
   const handleAction = async () => {
     // Try to get fresh capture from window, fallback to latest stored image
-    const captureFrame = (window as unknown as { captureFrame?: () => string | null }).captureFrame;
     let imageData: string | null = null;
     
-    if (captureFrame) {
-      imageData = captureFrame();
+    if (window.captureFrame) {
+      imageData = window.captureFrame();
     }
     
     // Fallback to stored image if captureFrame didn't work
